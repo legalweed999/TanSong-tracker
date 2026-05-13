@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>谭颂 - 减脂追踪看板</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 25%, #a18cd1 50%, #89f7fe 75%, #66a6ff 100%);
+      background-attachment: fixed;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      color: #333;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      padding: 30px 20px;
+      margin-bottom: 20px;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    }
+
+    .header .subtitle {
+      font-size: 14px;
+      color: rgba(255,255,255,0.85);
+      margin-top: 8px;
+    }
+
+    .header .emoji {
+      font-size: 40px;
+      margin-bottom: 10px;
+    }
+
+    .glass {
+      background: rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+    }
+
+    .glass h2 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #fff;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.35);
+      border-radius: 12px;
+      padding: 16px 12px;
+      text-align: center;
+    }
+
+    .stat-card .label {
+      font-size: 12px;
+      color: rgba(255,255,255,0.8);
+      margin-bottom: 4px;
+    }
+
+    .stat-card .value {
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+
+    .stat-card .unit {
+      font-size: 12px;
+      font-weight: 400;
+    }
+
+    .stat-card .change {
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .change.good { color: #4ade80; }
+    .change.bad { color: #fca5a5; }
+
+    .profile-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .profile-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .profile-item .key {
+      color: rgba(255,255,255,0.8);
+    }
+
+    .profile-item .val {
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 280px;
+    }
+
+    .progress-bar-container {
+      margin-top: 12px;
+    }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: rgba(255,255,255,0.85);
+      margin-bottom: 6px;
+    }
+
+    .progress-bar {
+      height: 12px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #4ade80, #22d3ee);
+      border-radius: 6px;
+      transition: width 0.5s ease;
+    }
+
+    .supplement-timeline {
+      font-size: 13px;
+    }
+
+    .supplement-time {
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 6px;
+      margin-top: 12px;
+    }
+
+    .supplement-time:first-child {
+      margin-top: 0;
+    }
+
+    .supplement-list {
+      color: rgba(255,255,255,0.85);
+      padding-left: 16px;
+    }
+
+    .supplement-list li {
+      margin-bottom: 3px;
+    }
+
+    .footer {
+      text-align: center;
+      padding: 20px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.6);
+    }
+
+    @media (max-width: 480px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .profile-grid { grid-template-columns: 1fr; }
+      .header h1 { font-size: 22px; }
+      .stat-card .value { font-size: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="emoji">🦞</div>
+      <h1>谭颂的减脂追踪</h1>
+      <div class="subtitle">霞教练陪伴中 · 始于 2026.04.07</div>
+    </div>
+
+    <!-- 当前状态 -->
+    <div class="glass">
+      <h2>📊 当前数据</h2>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="label">当前体重</div>
+          <div class="value">97.5<span class="unit"> kg</span></div>
+          <div class="change good">↓ 6.3 kg</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">体脂率</div>
+          <div class="value">29.6<span class="unit"> %</span></div>
+          <div class="change good">↓</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">肌肉量</div>
+          <div class="value">39.1<span class="unit"> kg</span></div>
+          <div class="change">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">内脏脂肪</div>
+          <div class="value">12<span class="unit"> 级</span></div>
+          <div class="change">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">BMI</div>
+          <div class="value">30.6</div>
+          <div class="change">肥胖</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">已减天数</div>
+          <div class="value">36<span class="unit"> 天</span></div>
+          <div class="change good">-6.3kg</div>
+        </div>
+      </div>
+      <!-- Progress -->
+      <div class="progress-bar-container">
+        <div class="progress-label">
+          <span>103.8 kg</span>
+          <span>目标 75 kg</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: 22.2%"></div>
+        </div>
+        <div class="progress-label" style="margin-top:4px; justify-content:center;">
+          <span>已完成 22.2% · 还需减 22.5 kg</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 个人档案 -->
+    <div class="glass">
+      <h2>👤 个人档案</h2>
+      <div class="profile-grid">
+        <div class="profile-item"><span class="key">性别</span><span class="val">男</span></div>
+        <div class="profile-item"><span class="key">年龄</span><span class="val">35 岁</span></div>
+        <div class="profile-item"><span class="key">身高</span><span class="val">178.5 cm</span></div>
+        <div class="profile-item"><span class="key">起始体重</span><span class="val">103.8 kg</span></div>
+        <div class="profile-item"><span class="key">目标体重</span><span class="val">75 kg</span></div>
+        <div class="profile-item"><span class="key">目标日期</span><span class="val">2026.07.07</span></div>
+        <div class="profile-item"><span class="key">BMR</span><span class="val">~1989 kcal</span></div>
+        <div class="profile-item"><span class="key">TDEE</span><span class="val">~2735 kcal</span></div>
+        <div class="profile-item"><span class="key">每日热量目标</span><span class="val">2235-2435 kcal</span></div>
+        <div class="profile-item"><span class="key">蛋白质目标</span><span class="val">156-195 g/天</span></div>
+      </div>
+    </div>
+
+    <!-- 体重趋势图 -->
+    <div class="glass">
+      <h2>📉 体重趋势</h2>
+      <div class="chart-container">
+        <canvas id="weightChart"></canvas>
+      </div>
+    </div>
+
+    <!-- 补剂方案 -->
+    <div class="glass">
+      <h2>💊 补剂方案</h2>
+      <div class="supplement-timeline">
+        <div class="supplement-time">🌅 早晨</div>
+        <ul class="supplement-list">
+          <li>倍立健 ×1对</li>
+          <li>钙镁片 ×2</li>
+          <li>鱼油 ×2</li>
+          <li>纽崔莱植物蛋白粉 ×2勺（+香蕉100g +冷冻蓝莓60g 奶昔）</li>
+        </ul>
+        <div class="supplement-time">☀️ 中午（随餐）</div>
+        <ul class="supplement-list">
+          <li>纽崔莱沛源蛋白粉 ×2勺</li>
+          <li>纤盈植萃益生菌 ×1</li>
+          <li>汉本萃蘅怡饮品 ×1</li>
+        </ul>
+        <div class="supplement-time">🌙 晚餐</div>
+        <ul class="supplement-list">
+          <li>倍立健 ×1对</li>
+          <li>钙镁片 ×2</li>
+          <li>鱼油 ×1</li>
+          <li>纤盈植萃益生菌 ×1</li>
+          <li>汉本萃蘅怡饮品 ×1</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      🦞 霞教练 · 数据更新于 2026-05-13
+    </div>
+  </div>
+
+  <script>
+    // Weight data - will be updated by 霞教练
+    const weightData = {
+      labels: ['04-07', '04-14', '04-21', '04-28', '05-05', '05-13'],
+      weights: [103.8, 102.5, 101.0, 99.8, 98.5, 97.5],
+      bodyFat: [null, null, null, null, null, 29.6],
+      muscle: [null, null, null, null, null, 39.1],
+      visceral: [null, null, null, null, null, 12]
+    };
+
+    const ctx = document.getElementById('weightChart').getContext('2d');
+    
+    const gradient = ctx.createLinearGradient(0, 0, 0, 280);
+    gradient.addColorStop(0, 'rgba(74, 222, 128, 0.4)');
+    gradient.addColorStop(1, 'rgba(74, 222, 128, 0.02)');
+
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: weightData.labels,
+        datasets: [
+          {
+            label: '体重 (kg)',
+            data: weightData.weights,
+            borderColor: '#4ade80',
+            backgroundColor: gradient,
+            fill: true,
+            tension: 0.3,
+            pointBackgroundColor: '#fff',
+            pointBorderColor: '#4ade80',
+            pointBorderWidth: 2,
+            pointRadius: 5,
+            pointHoverRadius: 7,
+          },
+          {
+            label: '目标线',
+            data: Array(weightData.labels.length).fill(75),
+            borderColor: 'rgba(255,255,255,0.4)',
+            borderDash: [8, 4],
+            borderWidth: 1.5,
+            pointRadius: 0,
+            fill: false,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            labels: {
+              color: 'rgba(255,255,255,0.85)',
+              font: { size: 12 },
+              usePointStyle: true,
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            titleFont: { size: 13 },
+            bodyFont: { size: 12 },
+            padding: 10,
+            cornerRadius: 8,
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: 'rgba(255,255,255,0.7)', font: { size: 11 } },
+            grid: { color: 'rgba(255,255,255,0.1)' }
+          },
+          y: {
+            min: 70,
+            max: 110,
+            ticks: { 
+              color: 'rgba(255,255,255,0.7)', 
+              font: { size: 11 },
+              callback: function(val) { return val + ' kg'; }
+            },
+            grid: { color: 'rgba(255,255,255,0.1)' }
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
